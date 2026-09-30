@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0b0d">
+<title>タスク</title>
+<link rel="preconnect" href="https://api.github.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori&#43;Mincho&#43;B1:wght@500;700;800&amp;family=Bodoni&#43;Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0d;
+    --card: #141417;
+    --line: #26262b;
+    --text: #f2f2f4;
+    --sub: #8e8e96;
+    --faint: #55555c;
+    --seg-on: #ecebe7;
+    --seg-off: #3a3a40;
+    --done: #6b6b72;
+    --mincho: 'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+    --num: 'Bodoni Moda', 'Didot', 'Bodoni 72', serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: var(--mincho);
+    padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+   
+  .hero {
+    position: relative;
+    min-height: min(52vh, 440px);
+    display: flex; align-items: flex-end;
+    overflow: hidden;
+    background: radial-gradient(120% 90% at 20% 0%, #2a2a31 0%, #111114 55%, var(--bg) 100%);
+  }
+  .hero-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .hero::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(11,11,13,0) 30%, rgba(11,11,13,.55) 62%, var(--bg) 100%);
+  }
+  .hero-body {
+    position: relative; z-index: 1; width: 100%;
+    padding: calc(28px + env(safe-area-inset-top, 0px)) 24px 22px;
+  }
+  .kicker { font-family: var(--num); font-style: italic; letter-spacing: .18em; font-size: 13px; color: var(--sub); }
+  .title {
+    margin: 6px 0 16px; font-weight: 800; line-height: 1.25;
+    font-size: clamp(26px, 6vw, 40px); letter-spacing: .04em;
+    text-shadow: 0 2px 18px rgba(0,0,0,.45);
+  }
+  .overall { display: flex; align-items: flex-end; gap: 16px; }
+  .overall .segs { flex: 1; }
+  .big-pct { font-family: var(--num); font-weight: 600; font-size: clamp(40px, 10vw, 60px); line-height: .9; }
+  .big-pct small { font-size: .45em; font-weight: 400; margin-left: 2px; }
+  .meta { margin-top: 10px; font-size: 13px; color: var(--sub); display: flex; gap: 14px; flex-wrap: wrap; }
+
+   
+  .segs { display: flex; gap: 4px; padding: 0 3px; }
+  .seg {
+    flex: 1; height: 12px; transform: skewX(-24deg); border-radius: 2px;
+    border: 1.5px solid var(--seg-off); background: transparent;
+    transition: background .35s ease, border-color .35s ease;
+  }
+  .seg.on { background: var(--seg-on); border-color: var(--seg-on); }
+  .segs.small .seg { height: 8px; border-width: 1.2px; }
+  .segs.small { gap: 3px; }
+
+   
+  .groups { padding: 8px 16px 0; }
+  .group { border-top: 1px solid var(--line); }
+  .group:first-child { border-top: 0; }
+  .g-head {
+    display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px;
+    padding: 16px 8px 12px; cursor: pointer; user-select: none;
+  }
+  .g-name { font-weight: 700; font-size: 18px; letter-spacing: .05em; display: flex; align-items: center; gap: 8px; }
+  .g-name .chev { color: var(--faint); font-size: 12px; transition: transform .25s; }
+  .group.closed .chev { transform: rotate(-90deg); }
+  .g-pct { font-family: var(--num); font-size: 22px; font-weight: 600; text-align: right; }
+  .g-pct small { font-size: .55em; font-weight: 400; }
+  .g-bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
+  .g-bar .segs { flex: 1; }
+  .g-count { font-family: var(--num); font-size: 13px; color: var(--sub); min-width: 3.2em; text-align: right; }
+  .group.complete .g-name, .group.complete .g-pct { color: var(--sub); }
+
+  .items { list-style: none; margin: 0; padding: 0 0 10px; }
+  .group.closed .items { display: none; }
+  .item {
+    display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 10px;
+    padding: 9px 8px; border-radius: 10px; cursor: pointer;
+  }
+  .item:active { background: #1b1b20; }
+  .item.parent { cursor: default; }
+  .item.parent:active { background: transparent; }
+  .item[data-level="2"] { padding-left: 34px; }
+  .item[data-level="3"] { padding-left: 60px; }
+  .item[data-level="2"], .item[data-level="3"] { position: relative; }
+  .item[data-level="2"]::before, .item[data-level="3"]::before {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line);
+  }
+  .item[data-level="2"]::before { left: 20px; }
+  .item[data-level="3"]::before { left: 46px; }
+
+   
+  .box {
+    width: 18px; height: 18px; margin-left: 4px; transform: skewX(-14deg); border-radius: 3px;
+    border: 1.6px solid var(--faint); position: relative; transition: all .2s;
+  }
+  .item.done .box { background: var(--seg-on); border-color: var(--seg-on); }
+  .item.done .box::after {
+    content: ''; position: absolute; left: 5px; top: 1px; width: 5px; height: 10px;
+    border: solid var(--bg); border-width: 0 2px 2px 0; transform: rotate(45deg) skewX(14deg);
+  }
+  .ring { font-family: var(--num); font-size: 12px; color: var(--sub); text-align: center; }
+  .i-text { font-size: 16px; line-height: 1.45; }
+  .i-memo { display: block; font-size: 12px; color: var(--sub); margin-top: 2px; }
+  .item.done .i-text { color: var(--done); text-decoration: line-through; text-decoration-color: var(--faint); }
+  .i-date { font-family: var(--num); font-size: 13px; color: var(--sub); }
+  .item.parent .i-text { font-weight: 700; }
+
+   
+  .list { padding: 8px 16px; }
+  .card {
+    display: block; text-decoration: none; color: inherit;
+    padding: 18px 16px; border-bottom: 1px solid var(--line);
+  }
+  .card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .card-name { font-weight: 700; font-size: 18px; }
+  .card-pct { font-family: var(--num); font-size: 24px; font-weight: 600; }
+  .card-no { font-family: var(--num); font-style: italic; color: var(--faint); font-size: 14px; margin-right: 10px; }
+  .card-meta { margin-top: 8px; font-size: 12px; color: var(--sub); }
+  .card.unused { padding: 12px 16px; }
+  .card.unused .card-top { margin: 0; }
+  .card.unused .card-name { font-weight: 500; font-size: 14px; color: var(--faint); }
+
+  .foot { padding: 26px 24px 0; display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--sub); }
+  .foot a { color: var(--sub); text-decoration: none; border-bottom: 1px solid var(--faint); }
+  .empty, .error { padding: 32px 24px; color: var(--sub); line-height: 1.8; }
+  .toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+    background: #2a2a30; color: var(--text); padding: 10px 16px; border-radius: 999px; font-size: 13px;
+    opacity: 0; transition: opacity .3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+   
+  .setup { padding: 12px 24px 40px; line-height: 1.8; color: var(--sub); font-size: 14px; }
+  .setup input {
+    width: 100%; margin: 14px 0 10px; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--card); color: var(--text); font-size: 15px;
+  }
+  .setup button {
+    width: 100%; padding: 12px; border: 0; border-radius: 10px; background: var(--seg-on); color: var(--bg);
+    font-family: var(--mincho); font-weight: 700; font-size: 15px;
+  }
+  .setup .err { color: #ff8a80; }
+  .sync { font-family: var(--num); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+  
+
+  const DATA_API = 'https://api.github.com/repos/dai-shin-no818/task-widget-data/contents/';
+  const WRITE_URL = 'https://script.google.com/macros/s/AKfycbyFFW3YfET_seWZhfWk739p6-GfqeuwMRKFA0D8lVO-ROVKiX_WB_bYoQt6a9ZPdTKp/exec';
+  const TOKEN_KEY = 'tw_token';
+
+  const n = parseInt(new URLSearchParams(location.search).get('w'), 10) || 0;
+  const VIEW_KEY = 'tw_view_' + n;
+  const storage = storageApi();
+  let token = storage.get(TOKEN_KEY);
+  let view = null;
+  const closed = {};        
+  let seq = 0;              
+  let pending = 0;          
+
+  
+  function storageApi() {
+    return {
+      get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+      set(k, v) { try { localStorage.setItem(k, v); } catch (e) {   } },
+      del(k) { try { localStorage.removeItem(k); } catch (e) {   } },
+    };
+  }
+
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const $app = () => document.getElementById('app');
+
+  function segs(percent, count, small) {
+    const on = Math.round(percent / 100 * count);
+    let h = '<div class="segs' + (small ? ' small' : '') + '">';
+    for (let i = 0; i < count; i++) h += '<span class="seg' + (i < on ? ' on' : '') + '"></span>';
+    return h + '</div>';
+  }
+
+  function pct(v) { return v + '<small>%</small>'; }
+
+  
+  function recompute() {
+    let allDone = 0, allTotal = 0;
+    view.groups.forEach(g => {
+      const leaves = g.items.filter(it => it.isLeaf);
+      const done = leaves.filter(it => it.done).length;
+      g.done = done; g.total = leaves.length;
+      g.percent = leaves.length ? Math.round(done / leaves.length * 100) : 0;
+      allDone += done; allTotal += leaves.length;
+      
+      g.items.forEach((it, i) => {
+        if (it.isLeaf) return;
+        let d = 0, t = 0;
+        for (let j = i + 1; j < g.items.length && g.items[j].level > it.level; j++) {
+          if (g.items[j].isLeaf) { t++; if (g.items[j].done) d++; }
+        }
+        it.sub = d + '/' + t;
+        it.done = t > 0 && d === t;
+      });
+    });
+    view.percent = allTotal ? Math.round(allDone / allTotal * 100) : 0;
+    view.count = allDone + '/' + allTotal;
+  }
+
+  function heroMedia() {
+    const url = view.mediaUrl || '';
+    if (!/^https?:\/\//.test(url)) return '';
+    return /\.(mp4|mov|webm)(\?|$)/i.test(url)
+      ? '<video class="hero-media" src="' + esc(url) + '" autoplay muted loop playsinline></video>'
+      : '<img class="hero-media" src="' + esc(url) + '" alt="">';
+  }
+
+  function renderTask() {
+    recompute();
+    document.title = view.name;
+    let h = '<header class="hero">' + heroMedia() + '<div class="hero-body">'
+      + '<div class="kicker">TASK ' + String(view.n).padStart(2, '0') + '</div>'
+      + '<h1 class="title">' + esc(view.name) + '</h1>'
+      + '<div class="overall">' + segs(view.percent, view.barTask) + '<div class="big-pct">' + pct(view.percent) + '</div></div>'
+      + '<div class="meta"><span>' + esc(view.count) + ' 完了</span>' + (view.dueLabel ? '<span>最終 ' + esc(view.dueLabel) + '</span>' : '') + '</div>'
+      + '</div></header>';
+
+    if (view.empty) {
+      h += '<div class="empty">このシートにはまだタスクがありません。<br>スプレッドシートの A1 にタスク名、2行目から工程とタスクを入力してください。</div>';
+    }
+
+    h += '<main class="groups">';
+    view.groups.forEach((g, gi) => {
+      const complete = g.total > 0 && g.done === g.total;
+      if (closed[gi] === undefined) closed[gi] = complete;
+      h += '<section class="group' + (complete ? ' complete' : '') + (closed[gi] ? ' closed' : '') + '">'
+        + '<div class="g-head" data-toggle="' + gi + '">'
+        + '<div class="g-name"><span class="chev">▼</span>' + esc(g.name) + '</div>'
+        + '<div class="g-pct">' + pct(g.percent) + '</div>'
+        + '<div class="g-bar">' + segs(g.percent, view.barGroup, true) + '<span class="g-count">' + g.done + '/' + g.total + '</span></div>'
+        + '</div><ul class="items">';
+      g.items.forEach((it, ii) => {
+        const parent = !it.isLeaf;
+        const lvl = Math.max(1, it.level);
+        const lead = parent ? '<span class="ring">' + esc(it.sub) + '</span>' : (it.checkCol ? '<span class="box"></span>' : '<span></span>');
+        h += '<li class="item' + (it.done ? ' done' : '') + (parent || !it.checkCol ? ' parent' : '') + '" data-level="' + lvl + '" data-g="' + gi + '" data-i="' + ii + '">'
+          + lead
+          + '<span class="i-text">' + esc(it.text) + (it.memo ? '<span class="i-memo">' + esc(it.memo) + '</span>' : '') + '</span>'
+          + '<span class="i-date">' + esc(it.date) + '</span></li>';
+      });
+      h += '</ul></section>';
+    });
+    h += '</main>';
+
+    h += '<footer class="foot"><a href="./">一覧へ</a>'
+      + '<span class="sync" id="sync"></span>'
+      + '<a href="' + esc(view.sheetUrl) + '">スプレッドシートで編集</a></footer>';
+    $app().innerHTML = h;
+    showSync();
+  }
+
+  function renderIndex() {
+    document.title = 'タスク一覧';
+    let h = '<header class="hero" style="min-height:220px"><div class="hero-body"><div class="kicker">TASKS</div><h1 class="title">タスク一覧</h1></div></header><main class="list">';
+    view.tasks.forEach(t => {
+      const no = '<span class="card-no">' + String(t.n).padStart(2, '0') + '</span>';
+      if (!t.used) {
+        h += '<a class="card unused" href="?w=' + t.n + '"><div class="card-top"><span class="card-name">' + no + 'ミディアム #' + t.n + '（未使用）</span></div></a>';
+        return;
+      }
+      h += '<a class="card" href="?w=' + t.n + '"><div class="card-top"><span class="card-name">' + no + esc(t.name) + '</span>'
+        + '<span class="card-pct">' + pct(t.percent) + '</span></div>' + segs(t.percent, view.barTask, true)
+        + (t.dueLabel ? '<div class="card-meta">' + esc(t.count) + ' 完了 ・ 最終 ' + esc(t.dueLabel) + '</div>' : '') + '</a>';
+    });
+    h += '</main><footer class="foot"><span></span><a href="#" id="forget">この端末の鍵を消す</a></footer>';
+    $app().innerHTML = h;
+  }
+
+  function renderSetup(message) {
+    $app().innerHTML = '<header class="hero" style="min-height:200px"><div class="hero-body"><div class="kicker">SETUP</div><h1 class="title">最初の設定</h1></div></header>'
+      + '<div class="setup">'
+      + (message ? '<p class="err">' + esc(message) + '</p>' : '')
+      + '<p>タスクを読み込むための鍵（GitHub の <b>task-widget-read</b>、github_pat_ で始まる文字列）を貼り付けてください。</p>'
+      + '<p>鍵はこの端末の中にだけ保存され、ほかの人には見えません。</p>'
+      + '<input id="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_...">'
+      + '<button id="save">保存して開く</button></div>';
+  }
+
+  function render() {
+    if (!view) return;
+    if (view.error) $app().innerHTML = '<div class="error">' + esc(view.error) + '</div>';
+    else if (view.index) renderIndex();
+    else renderTask();
+  }
+
+  function showSync() {
+    const el = document.getElementById('sync');
+    if (el) el.textContent = pending ? '保存中…' : '';
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  
+  async function fetchView() {
+    const res = await fetch(DATA_API + (n ? 'd' + n : 'index') + '.json', {
+      cache: 'no-store',
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github.raw+json' },
+    });
+    if (res.status === 401 || res.status === 403) throw Object.assign(new Error('auth'), { auth: true });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  async function load() {
+    if (!token) { renderSetup(); return; }
+    
+    const cached = storage.get(VIEW_KEY);
+    if (cached) {
+      try { view = JSON.parse(cached); render(); } catch (e) { view = null; }
+    }
+    const startSeq = seq;
+    try {
+      const v = await fetchView();
+      storage.set(VIEW_KEY, JSON.stringify(v));
+      if (seq === startSeq) { view = v; render(); }   
+    } catch (e) {
+      if (e.auth) { storage.del(TOKEN_KEY); token = null; renderSetup('鍵が正しくないか、使えなくなっています。もう一度入力してください。'); }
+      else if (!view) $app().innerHTML = '<div class="error">読み込めませんでした（' + esc(e.message) + '）。通信を確認して、ページを開き直してください。</div>';
+      else toast('最新の内容を読み込めませんでした');
+    }
+  }
+
+  
+  async function toggle(it) {
+    it.done = !it.done;
+    renderTask();
+    storage.set(VIEW_KEY, JSON.stringify(view));
+    const my = ++seq;
+    pending++; showSync();
+    try {
+      const res = await fetch(WRITE_URL, {
+        method: 'POST',
+        body: JSON.stringify({ token: token, act: 'toggle', w: view.n, row: it.row, col: it.checkCol, value: it.done }),
+      });
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.error === 'auth' ? '鍵を確認できませんでした' : j.error);
+      if (my === seq) { view = j.view; storage.set(VIEW_KEY, JSON.stringify(view)); renderTask(); }
+    } catch (e) {
+      it.done = !it.done;
+      renderTask();
+      storage.set(VIEW_KEY, JSON.stringify(view));
+      toast('保存できませんでした: ' + e.message);
+    } finally {
+      pending--; showSync();
+    }
+  }
+
+  document.addEventListener('click', ev => {
+    if (ev.target.id === 'save') {
+      const v = document.getElementById('token').value.trim();
+      if (!v) return;
+      token = v; storage.set(TOKEN_KEY, v);
+      $app().innerHTML = '<div class="empty">読み込み中…</div>';
+      load();
+      return;
+    }
+    if (ev.target.id === 'forget') {
+      ev.preventDefault();
+      storage.del(TOKEN_KEY); token = null;
+      renderSetup('この端末の鍵を消しました。');
+      return;
+    }
+    const head = ev.target.closest('[data-toggle]');
+    if (head) {
+      const gi = Number(head.dataset.toggle);
+      closed[gi] = !closed[gi];
+      head.parentElement.classList.toggle('closed', closed[gi]);
+      return;
+    }
+    const li = ev.target.closest('.item');
+    if (!li || li.classList.contains('parent') || !view || view.index) return;
+    toggle(view.groups[Number(li.dataset.g)].items[Number(li.dataset.i)]);
+  });
+
+  
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && token && !pending) load();
+  });
+
+  load();
+</script>
+</body>
+</html>
